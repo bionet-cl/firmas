@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Generador de firma de correo</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+  :root{--bg:#f4f6f9;--panel:#fff;--ink:#1d2433;--muted:#6b7385;--line:#e3e7ee;--accent:#077fee}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+  header{padding:18px 24px;border-bottom:1px solid var(--line);background:var(--panel);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  header h1{font-size:18px;margin:0}
+  header p{margin:2px 0 0;color:var(--muted);font-size:13px}
+  .wrap{display:grid;grid-template-columns:360px 1fr;gap:20px;padding:20px 24px;max-width:1400px;margin:0 auto}
+  @media (max-width:980px){.wrap{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px}
+  .card h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:0 0 12px}
+  .group{margin-bottom:18px}
+  label{display:block;font-size:12px;font-weight:600;margin:10px 0 4px;color:#3a4357}
+  input[type=text],input[type=url],input[type=email],input[type=tel],select{width:100%;padding:8px 10px;border:1px solid #cfd5df;border-radius:8px;font:inherit;background:#fff;color:var(--ink)}
+  input:focus,select:focus{outline:2px solid rgba(7,127,238,.35);border-color:var(--accent)}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .hint{font-size:12px;color:var(--muted);margin-top:4px}
+  .btn{display:inline-flex;align-items:center;gap:6px;border:1px solid #cfd5df;background:#fff;color:var(--ink);border-radius:8px;padding:9px 12px;font:inherit;font-weight:600;cursor:pointer}
+  .btn:hover{border-color:#9aa3b2}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .btn.small{padding:6px 10px;font-size:12px}
+  .actions{display:flex;flex-wrap:wrap;gap:8px}
+  .preview-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:10px;flex-wrap:wrap}
+  .preview-head h2{margin:0}
+  .viewtoggle{display:inline-flex;border:1px solid #cfd5df;border-radius:8px;overflow:hidden}
+  .viewtoggle button{border:0;background:#fff;padding:6px 12px;font:inherit;font-size:12px;cursor:pointer}
+  .viewtoggle button.on{background:var(--accent);color:#fff;font-weight:600}
+  .stage.phone{max-width:375px;margin:0 auto;border:10px solid #1d2433;border-radius:28px}
+  .preview-shell{border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  .stage.phone .preview-shell{border:0}
+  .fake-mail{background:#fafbfc;border-bottom:1px solid var(--line);padding:10px 14px;font-size:12px;color:var(--muted)}
+  .preview{background:#fff;padding:22px 18px;overflow-x:auto;min-height:150px}
+  .stage.phone .preview{padding:18px 14px}
+  .preview .body-text{color:#444;font:13px Arial,sans-serif;margin:0 0 18px}
+  .notice{display:none;margin-top:10px;padding:8px 10px;border-radius:8px;font-size:12px;background:#fff6e5;color:#7a4a00;border:1px solid #f1d39b}
+  .notice.show{display:block}
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(20px);background:#1d2433;color:#fff;padding:10px 16px;border-radius:8px;font-size:13px;opacity:0;transition:.2s;pointer-events:none;z-index:10;max-width:90vw}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .tabs{display:flex;gap:4px;flex-wrap:wrap;border-bottom:1px solid var(--line);margin-bottom:12px}
+  .tabs button{border:0;background:none;padding:8px 10px;font:inherit;font-size:13px;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px}
+  .tabs button.on{color:var(--ink);font-weight:600;border-bottom-color:var(--accent)}
+  .howto ol{margin:0;padding-left:20px}
+  .howto li{margin:4px 0}
+  .howto .tip{font-size:12px;color:var(--muted);margin-top:8px}
+  code.k{background:#eef1f5;border-radius:4px;padding:1px 5px;font-size:12px}
+  pre{background:#0f1420;color:#d6deeb;border-radius:8px;padding:12px;font-size:11.5px;max-height:260px;overflow:auto;white-space:pre-wrap;word-break:break-all;margin:10px 0 0}
+  .export-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+  .export{border:1px solid var(--line);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:8px}
+  .export b{font-size:13px}
+  .export span{font-size:12px;color:var(--muted);flex:1}
+  .stack{display:flex;flex-direction:column;gap:20px}
+  .file-row{display:flex;gap:8px;align-items:center}
+  .file-row input[type=file]{font-size:12px;flex:1;min-width:0}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Generador de firma de correo</h1>
+    <p>Diseño oficial de marketing · Gmail, Outlook, Titan / GoDaddy · Exporta a HTML, PNG y texto plano.</p>
+  </div>
+  <div class="actions">
+    <button class="btn small" id="btnSample">Cargar ejemplo</button>
+    <button class="btn small" id="btnClear">Limpiar</button>
+  </div>
+</header>
+
+<div class="wrap">
+  <aside class="card">
+    <div class="group">
+      <h2>Datos</h2>
+      <label for="name">Nombre</label>
+      <input type="text" id="name">
+      <label for="role">Cargo</label>
+      <input type="text" id="role">
+      <label for="dept">Área / subgerencia</label>
+      <input type="text" id="dept">
+      <div class="row">
+        <div><label for="phone1">Teléfono fijo</label><input type="tel" id="phone1"></div>
+        <div><label for="phone2">Celular</label><input type="tel" id="phone2"></div>
+      </div>
+      <label for="email">Correo</label>
+      <input type="email" id="email">
+      <label for="address">Dirección</label>
+      <input type="text" id="address">
+    </div>
+
+    <div class="group">
+      <h2>Firma guardada</h2>
+      <label for="openFile">Abrir una firma descargada (.html) para editarla</label>
+      <input type="file" id="openFile" accept=".html,.htm,text/html" style="font-size:12px;width:100%">
+      <div class="hint">Las firmas guardadas en el sitio se abren con su enlace, por ejemplo <code class="k">?f=pcarrillo</code>.</div>
+    </div>
+
+    <div class="group">
+      <h2>Logo</h2>
+      <label for="logoUrl">URL pública del logo</label>
+      <input type="url" id="logoUrl">
+      <div class="hint">La usan Gmail, Outlook y Titan. Debe ser un enlace directo y público a la imagen.</div>
+      <label for="logoFile">Archivo del logo (solo para vista previa y PNG)</label>
+      <div class="file-row">
+        <input type="file" id="logoFile" accept="image/*">
+        <button class="btn small" id="btnClearFile" type="button">Quitar</button>
+      </div>
+    </div>
+  </aside>
+
+  <main class="stack">
+    <section class="card">
+      <div class="preview-head">
+        <h2>Vista previa</h2>
+        <div class="viewtoggle" id="viewtoggle">
+          <button type="button" data-view="desk" class="on">Escritorio</button>
+          <button type="button" data-view="phone">Celular</button>
+        </div>
+      </div>
+      <div class="stage" id="stage"><div class="preview-shell">
+        <div class="fake-mail">Para: cliente@ejemplo.cl &nbsp;·&nbsp; Asunto: Reunión del jueves</div>
+        <div class="preview">
+          <p class="body-text">Saludos cordiales,</p>
+          <div id="preview"></div>
+        </div>
+      </div></div>
+      <div class="notice" id="logoNotice">No se pudo cargar el logo desde la URL aquí, así que la vista previa no lo muestra. Lo que copies o exportes en HTML sí usa la URL. Para verlo aquí y en el PNG, sube el archivo en <b>Logo → Archivo</b>.</div>
+    </section>
+
+    <section class="card">
+      <h2>Exportar</h2>
+      <div class="export-grid">
+        <div class="export">
+          <b>Copiar firma</b>
+          <span>La opción más rápida para Gmail, Outlook y Titan: pégala en el editor de firma.</span>
+          <button class="btn primary" id="btnCopyRich">Copiar firma</button>
+        </div>
+        <div class="export">
+          <b>HTML</b>
+          <span>Código para Outlook clásico (.htm), Thunderbird, Apple Mail o editores que aceptan HTML.</span>
+          <div class="actions">
+            <button class="btn" id="btnDlHtml">Descargar .html</button>
+            <button class="btn small" id="btnCopyCode">Copiar código</button>
+          </div>
+        </div>
+        <div class="export">
+          <b>PNG</b>
+          <span>Imagen recortada al contenido. “Tamaño real” se ve igual de grande que la firma en el correo.</span>
+          <select id="pngScale" style="padding:6px 8px">
+            <option value="1">Tamaño real (recomendado)</option>
+            <option value="2">Alta nitidez (2x, pantallas retina)</option>
+          </select>
+          <button class="btn" id="btnDlPng">Descargar .png</button>
+        </div>
+        <div class="export">
+          <b>Texto plano</b>
+          <span>Para correos en modo texto, móviles o cualquier cliente sin formato.</span>
+          <div class="actions">
+            <button class="btn" id="btnCopyTxt">Copiar texto</button>
+            <button class="btn small" id="btnDlTxt">Descargar .txt</button>
+          </div>
+        </div>
+      </div>
+      <details style="margin-top:12px">
+        <summary style="cursor:pointer;font-size:13px;font-weight:600">Ver código HTML / texto</summary>
+        <pre id="codeOut"></pre>
+        <pre id="txtOut"></pre>
+      </details>
+    </section>
+
+    <section class="card howto">
+      <h2>Cómo instalarla</h2>
+      <div class="tabs" id="tabs">
+        <button data-tab="gmail" class="on">Gmail</button>
+        <button data-tab="owa">Outlook web / nuevo</button>
+        <button data-tab="outlook">Outlook clásico</button>
+        <button data-tab="titan">Titan (GoDaddy)</button>
+        <button data-tab="txt">Texto plano</button>
+      </div>
+      <div data-pane="gmail">
+        <ol>
+          <li>Pulsa <b>Copiar firma</b>.</li>
+          <li>En Gmail: ⚙️ → <b>Ver toda la configuración</b> → pestaña <b>General</b> → sección <b>Firma</b>.</li>
+          <li>Selecciona tu firma (o <b>Crear</b>), borra el contenido y pega con <code class="k">Ctrl+V</code> / <code class="k">Cmd+V</code>.</li>
+          <li>Elige la firma en “Para correos nuevos” y “Para respuestas”, baja al final y pulsa <b>Guardar cambios</b>.</li>
+        </ol>
+        <p class="tip">Gmail no acepta imágenes subidas como archivo dentro de la firma pegada: el logo debe venir de una URL pública.</p>
+      </div>
+      <div data-pane="owa" hidden>
+        <ol>
+          <li>Pulsa <b>Copiar firma</b>.</li>
+          <li>En Outlook web o el nuevo Outlook: ⚙️ Configuración → <b>Cuentas</b> → <b>Firmas</b>.</li>
+          <li>Crea una firma nueva, pega en el editor y asígnala a mensajes nuevos y respuestas.</li>
+          <li>Pulsa <b>Guardar</b>.</li>
+        </ol>
+      </div>
+      <div data-pane="outlook" hidden>
+        <ol>
+          <li>Pulsa <b>Copiar firma</b>.</li>
+          <li>En Outlook de escritorio: <b>Archivo → Opciones → Correo → Firmas…</b></li>
+          <li><b>Nueva</b>, ponle nombre, pega en el cuadro de edición y elige la firma predeterminada.</li>
+          <li><b>Aceptar</b>.</li>
+        </ol>
+        <p class="tip">Alternativa: descarga el .html, renómbralo a <code class="k">.htm</code> y cópialo en <code class="k">%APPDATA%\Microsoft\Signatures</code>.</p>
+      </div>
+      <div data-pane="titan" hidden>
+        <ol>
+          <li>Pulsa <b>Copiar firma</b>.</li>
+          <li>En Titan webmail: ⚙️ Configuración → <b>Firma</b> (Signature).</li>
+          <li>Pega en el editor y guarda. Actívala para mensajes nuevos y respuestas.</li>
+          <li>En la app móvil de Titan, configúrala aparte (o usa la versión de texto plano).</li>
+        </ol>
+        <p class="tip">Si tu correo GoDaddy es “Microsoft 365 de GoDaddy”, sigue las instrucciones de Outlook.</p>
+      </div>
+      <div data-pane="txt" hidden>
+        <ol>
+          <li>Pulsa <b>Copiar texto</b>.</li>
+          <li>Pégalo en el campo de firma de cualquier cliente (iPhone Mail, Gmail móvil, Outlook móvil, modo “texto sin formato”).</li>
+        </ol>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div id="pngStage" style="position:fixed;left:-10000px;top:0;background:#fff;padding:4px;width:608px"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  // Diseño oficial (marketing): fijo, no editable desde la interfaz.
+  const DESIGN = { color:'#077fee', font:'Arial, Helvetica, sans-serif', size:12, nameSize:14, width:600, logoW:195, logoH:125 };
+
+  const SAMPLE = {
+    name:'Patricia Carrillo Reyes', role:'Encargada de Procesos Administrativos', dept:'Subgerencia de Procesos y TI',
+    phone1:'+56227677520', phone2:'+56989031740', email:'pcarrillo@bionet.cl',
+    address:'Av. Salvador 1068, Providencia - Chile', logoUrl:'https://bionet-cl.github.io/firmas/logo.png'
+  };
+  const EMPTY = Object.assign({}, SAMPLE, {name:'',role:'',dept:'',phone1:'',phone2:'',email:''});
+  const FIELDS = ['name','role','dept','phone1','phone2','email','address','logoUrl'];
+  const KEY = 'firma-generador-v3';
+  const $ = id => document.getElementById(id);
+
+  let state = Object.assign({}, SAMPLE);
+  let logoData = null, logoUrlFailed = false;
+  try {
+    const saved = JSON.parse(localStorage.getItem(KEY) || localStorage.getItem('firma-generador-v2') || localStorage.getItem('firma-generador-v1') || 'null');
+    if (saved) FIELDS.forEach(f => { if (typeof saved[f] === 'string') state[f] = saved[f]; });
+  } catch(e) {}
+
+  const esc = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const telHref = s => 'tel:' + String(s).replace(/[^\d+]/g,'');
+  function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove('show'),2600); }
+
+  // ---------- HTML para correo ----------
+  // Igual al diseño original (texto izq. / logo der., 600px) con dos ajustes:
+  //  1) texto y logo centrados verticalmente (mismo nivel);
+  //  2) en celular se achica proporcionalmente (width:100% + max-width) en vez de desbordarse.
+  //     Outlook de escritorio usa los atributos width="600"/"195", así que ahí se ve idéntico al original.
+  function buildHTML(d, logoSrc){
+    const {color:c, font, size:fs, nameSize, width:W, logoW, logoH} = DESIGN;
+    const reset = '-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;';
+    const base = `font-family:${font};font-size:${fs}px;line-height:1.4;color:${c};${reset}`;
+    const link = `color:${c};text-decoration:none;`;
+    const tbl = 'role="presentation" cellpadding="0" cellspacing="0" border="0"';
+    const tblStyle = 'border-collapse:collapse;mso-table-lspace:0pt;mso-table-rspace:0pt;';
+    const line = (inner, pad='0 0 4px 0') => `<tr><td style="${base}padding:${pad};">${inner}</td></tr>`;
+
+    let rows = '';
+    if (d.name)  rows += line(`<strong style="font-size:${nameSize}px;">${esc(d.name)}</strong>`, '0 0 5px 0');
+    if (d.role)  rows += line(esc(d.role));
+    if (d.dept)  rows += line(esc(d.dept));
+    const phones = [d.phone1, d.phone2].filter(Boolean).map(p => `<a href="${esc(telHref(p))}" style="${link}">${esc(p)}</a>`);
+    if (phones.length) rows += line(phones.join(' / '));
+    if (d.email) rows += line(`<a href="mailto:${esc(d.email)}" style="${link}">${esc(d.email)}</a>`);
+    if (d.address) {
+      rows += `<tr><td style="padding:6px 0 10px 0;"><table ${tbl} width="100%" style="${tblStyle}width:100%;"><tr><td height="1" style="border-top:1px solid ${c};font-size:0;line-height:0;height:1px;">&nbsp;</td></tr></table></td></tr>`;
+      rows += line(esc(d.address), '0');
+    }
+    const textTable = `<table ${tbl} width="100%" style="${tblStyle}width:100%;">${rows}</table>`;
+
+    const img = logoSrc
+      ? `<img src="${esc(logoSrc)}" width="${logoW}" height="${logoH}" alt="Logo" style="display:block;width:100%;max-width:${logoW}px;height:auto;border:0;outline:none;text-decoration:none;">`
+      : '';
+
+    return `<table ${tbl} width="${W}" style="${tblStyle}width:100%;max-width:${W}px;${base}"><tr>`
+         + `<td width="340" valign="middle" style="width:57%;vertical-align:middle;padding:0 20px 0 0;">${textTable}</td>`
+         + `<td width="260" valign="middle" align="left" style="width:43%;vertical-align:middle;text-align:left;">${img}</td>`
+         + `</tr></table>`;
+  }
+
+  // Los datos van dentro del .html exportado (comentario en base64) para poder reabrir y editar la copia.
+  const encodeData = d => btoa(unescape(encodeURIComponent(JSON.stringify(Object.fromEntries(FIELDS.map(f => [f, d[f] || '']))))));
+  function decodeData(html){
+    const m = String(html).match(/<!--\s*firma-data:([A-Za-z0-9+\/=]+)\s*-->/);
+    if (!m) return null;
+    try { return JSON.parse(decodeURIComponent(escape(atob(m[1])))); } catch(e) { return null; }
+  }
+  function loadData(obj){
+    if (!obj) return false;
+    FIELDS.forEach(f => { if (typeof obj[f] === 'string') state[f] = obj[f]; });
+    fillForm(); render(); return true;
+  }
+
+  function buildFullDoc(d){
+    return `<!DOCTYPE html>\n<html lang="es">\n<head>\n<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width, initial-scale=1.0">\n<title>Firma - ${esc(d.name)}</title>\n</head>\n<body style="margin:0;padding:0;">\n<!-- Firma compatible con Gmail, Outlook, Titan y otros clientes -->\n<!-- firma-data:${encodeData(d)} -->\n${buildHTML(d, d.logoUrl)}\n</body>\n</html>\n`;
+  }
+
+  function buildText(d){
+    const out = [d.name, d.role, d.dept].filter(Boolean);
+    const ph = [d.phone1, d.phone2].filter(Boolean).join(' / ');
+    if (ph) out.push(ph);
+    if (d.email) out.push(d.email);
+    if (d.address) { out.push('—'); out.push(d.address); }
+    return out.join('\n');
+  }
+
+  const fileBase = () => 'firma-' + (state.name || 'correo').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+
+  function render(){
+    $('preview').innerHTML = buildHTML(state, logoData || state.logoUrl);
+    const img = $('preview').querySelector('img');
+    logoUrlFailed = false;
+    $('logoNotice').classList.remove('show');
+    if (img && !logoData) img.addEventListener('error', () => { logoUrlFailed = true; img.style.display='none'; $('logoNotice').classList.add('show'); }, {once:true});
+    $('codeOut').textContent = buildHTML(state, state.logoUrl);
+    $('txtOut').textContent = buildText(state);
+    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch(e) {}
+  }
+  function fillForm(){ FIELDS.forEach(f => { $(f).value = state[f] ?? ''; }); }
+
+  FIELDS.forEach(f => $(f).addEventListener('input', e => { state[f] = e.target.value; render(); }));
+  document.querySelectorAll('#viewtoggle button').forEach(b => b.addEventListener('click', () => {
+    document.querySelectorAll('#viewtoggle button').forEach(x => x.classList.toggle('on', x === b));
+    $('stage').classList.toggle('phone', b.dataset.view === 'phone');
+  }));
+  $('logoFile').addEventListener('change', e => {
+    const f = e.target.files && e.target.files[0]; if (!f) return;
+    const r = new FileReader();
+    r.onload = () => { logoData = r.result; render(); toast('Logo cargado para vista previa y PNG'); };
+    r.readAsDataURL(f);
+  });
+  $('btnClearFile').addEventListener('click', () => { logoData = null; $('logoFile').value=''; render(); });
+  $('btnSample').addEventListener('click', () => { state = Object.assign({}, SAMPLE); fillForm(); render(); toast('Ejemplo cargado'); });
+  $('btnClear').addEventListener('click', () => { state = Object.assign({}, EMPTY); fillForm(); render(); });
+  document.querySelectorAll('#tabs button').forEach(b => b.addEventListener('click', () => {
+    document.querySelectorAll('#tabs button').forEach(x => x.classList.toggle('on', x === b));
+    document.querySelectorAll('[data-pane]').forEach(p => p.hidden = p.dataset.pane !== b.dataset.tab);
+  }));
+
+  // ---------- portapapeles ----------
+  function copyViaSelection(html){
+    const box = document.createElement('div');
+    box.contentEditable = 'true'; box.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0;';
+    box.innerHTML = html; document.body.appendChild(box);
+    const range = document.createRange(); range.selectNodeContents(box);
+    const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
+    let ok = false; try { ok = document.execCommand('copy'); } catch(e) {}
+    sel.removeAllRanges(); box.remove(); return ok;
+  }
+  async function copyRich(html, text){
+    try {
+      if (window.ClipboardItem && navigator.clipboard && navigator.clipboard.write) {
+        await navigator.clipboard.write([new ClipboardItem({'text/html': new Blob([html],{type:'text/html'}), 'text/plain': new Blob([text],{type:'text/plain'})})]);
+        return true;
+      }
+    } catch(e) {}
+    return copyViaSelection(html);
+  }
+  async function copyText(text){
+    try { await navigator.clipboard.writeText(text); return true; } catch(e) {}
+    const ta = document.createElement('textarea'); ta.value = text; ta.style.cssText='position:fixed;left:-9999px'; document.body.appendChild(ta); ta.select();
+    let ok=false; try { ok = document.execCommand('copy'); } catch(e) {} ta.remove(); return ok;
+  }
+  $('btnCopyRich').addEventListener('click', async () => {
+    if (!state.logoUrl) toast('Ojo: sin URL de logo, la firma copiada no tendrá logo');
+    toast(await copyRich(buildHTML(state, state.logoUrl), buildText(state)) ? 'Firma copiada. Pégala en el editor de firma de tu correo' : 'No se pudo copiar. Selecciona la vista previa y copia manualmente');
+  });
+  $('btnCopyCode').addEventListener('click', async () => toast(await copyText(buildFullDoc(state)) ? 'Código HTML copiado' : 'No se pudo copiar'));
+  $('btnCopyTxt').addEventListener('click', async () => toast(await copyText(buildText(state)) ? 'Texto copiado' : 'No se pudo copiar'));
+
+  // ---------- descargas ----------
+  let downloadsApi;
+  if (window.claude && typeof window.claude.use === 'function') window.claude.use('downloads').then(d => { downloadsApi = d; }).catch(() => { downloadsApi = null; });
+  else downloadsApi = null;
+
+  async function saveFile(filename, data){
+    if (downloadsApi) {
+      try { await downloadsApi.save({filename, data}); toast('Archivo guardado: ' + filename); return; }
+      catch(e) {
+        if (e && e.code === 'declined') { toast('Descarga cancelada'); return; }
+        if (e && e.code === 'rate_limited') { toast('Ya hay una descarga pendiente, intenta de nuevo'); return; }
+      }
+    }
+    try {
+      const blob = data instanceof Blob ? data : new Blob([data], {type: filename.endsWith('.html') ? 'text/html' : 'text/plain'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+      toast('Descargando ' + filename);
+    } catch(e) { toast('La descarga no está disponible aquí. Usa los botones de copiar'); }
+  }
+  $('btnDlHtml').addEventListener('click', () => saveFile(fileBase() + '.html', buildFullDoc(state)));
+  $('btnDlTxt').addEventListener('click', () => saveFile(fileBase() + '.txt', buildText(state)));
+
+  // Quita el espacio blanco sobrante a la derecha (la tabla mide 600px pero el contenido es menor).
+  function trimRight(src, pad){
+    let lastCol = src.width - 1;
+    try {
+      const data = src.getContext('2d').getImageData(0, 0, src.width, src.height).data;
+      outer: for (let x = src.width - 1; x >= 0; x--) {
+        for (let y = 0; y < src.height; y++) {
+          const i = (y * src.width + x) * 4;
+          if (data[i] < 245 || data[i+1] < 245 || data[i+2] < 245) { lastCol = x; break outer; }
+        }
+      }
+    } catch(e) { return src; }
+    const w = Math.min(src.width, lastCol + 1 + pad);
+    const out = document.createElement('canvas'); out.width = w; out.height = src.height;
+    out.getContext('2d').drawImage(src, 0, 0);
+    return out;
+  }
+
+  $('btnDlPng').addEventListener('click', async () => {
+    if (typeof html2canvas !== 'function') { toast('No se pudo cargar el generador de imágenes'); return; }
+    if (!logoData && logoUrlFailed) toast('El PNG saldrá sin logo: sube el archivo del logo para incluirlo');
+    const stage = $('pngStage');
+    stage.innerHTML = buildHTML(state, logoData || state.logoUrl);
+    const img = stage.querySelector('img');
+    if (img) {
+      if (!logoData) img.crossOrigin = 'anonymous';
+      await new Promise(res => { if (img.complete) return res(); img.onload = res; img.onerror = () => { img.remove(); res(); }; });
+    }
+    try {
+      const scale = +$('pngScale').value || 1;
+      const full = await html2canvas(stage, {scale, backgroundColor:'#ffffff', useCORS:true, logging:false});
+      const canvas = trimRight(full, Math.round(4 * scale));
+      const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
+      await saveFile(fileBase() + '.png', blob);
+    } catch(e) { toast('No se pudo generar el PNG'); }
+    stage.innerHTML = '';
+  });
+
+  $('openFile').addEventListener('change', e => {
+    const f = e.target.files && e.target.files[0]; if (!f) return;
+    const r = new FileReader();
+    r.onload = () => toast(loadData(decodeData(r.result)) ? 'Firma cargada: ' + (state.name || f.name) : 'Ese archivo no fue creado con este generador');
+    r.readAsText(f);
+  });
+
+  fillForm();
+  render();
+
+  // Enlace directo a una firma guardada en el sitio: ?f=nombre  →  firmas/nombre.html
+  try {
+    const slug = new URLSearchParams(location.search).get('f');
+    if (slug && /^[a-z0-9._-]+$/i.test(slug)) {
+      fetch('firmas/' + slug + '.html', {cache:'no-store'})
+        .then(r => r.ok ? r.text() : Promise.reject())
+        .then(t => toast(loadData(decodeData(t)) ? 'Firma cargada: ' + state.name : 'No se pudo leer la firma guardada'))
+        .catch(() => toast('No se encontró la firma "' + slug + '"'));
+    }
+  } catch(e) {}
+})();
+</script>
+</body>
+</html>
